@@ -1,0 +1,16 @@
+[Unit]
+Description=Startup script for Dicefiend Discord bot
+After=network.target
+
+[Service]
+User=dicefiend
+WorkingDirectory=/opt/dicefiend
+#ExecStart=/usr/bin/tmux new -d -s dicefiend /usr/bin/python3 /opt/dicefiend/main.py
+ExecStart=/usr/bin/python3 /opt/dicefiend/main.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+# systemctl enable --now dicefiend
