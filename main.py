@@ -6,11 +6,14 @@ from sqlite3 import Row
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Any, overload
 
+from core.scheduler import TaskScheduler
+
 dotenv.load_dotenv()
 
 class Dicefiend(commands.Bot):
     def __init__(self) -> None:
         self.MAIN_POOL: asqlite.Pool
+        self.SCHEDULER: TaskScheduler = TaskScheduler()
 
         super().__init__(command_prefix=os.getenv("PREFIX", "!"), intents=discord.Intents.all(), help_command=None)
 
@@ -47,21 +50,18 @@ Loading... Please wait.
         except Exception as e:
             print(f"- Failed to load cogs: {e}")
 
-
     async def close(self) -> None:
         await self.session.close()
         await self.MAIN_POOL.close()
 
         return await super().close()
 
-    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
-        if not isinstance(error, commands.CommandNotFound):
-            await super().on_command_error(ctx, error)
-
-
     async def on_ready(self) -> None:
         print(f"Logged in as {self.user}")
 
+    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
+        if not isinstance(error, commands.CommandNotFound):
+            await super().on_command_error(ctx, error)
 
 
     @asynccontextmanager
@@ -72,15 +72,12 @@ Loading... Please wait.
             async with conn.cursor() as cur:
                 yield cur
 
-
     @overload
     async def execute(self, sql: str, params: tuple[Any, ...], pool: asqlite.Pool | None = None) -> Row | None: ...
     @overload
     async def execute(self, sql: str, params: tuple[Any, ...], pool: asqlite.Pool | None = None) -> list[Row]: ...
 
     async def execute(self, sql: str, params: tuple[Any, ...], pool: asqlite.Pool | None = None) -> Row | None | list[Row]:
-        pool = pool or self.MAIN_POOL
-        
         async with self.acquire_cursor(pool) as cur:
             _ret: asqlite.Cursor = await cur.execute(sql, params)
 
