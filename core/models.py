@@ -4,6 +4,30 @@ from typing import Any, overload, TYPE_CHECKING
 if TYPE_CHECKING:
     from main import Dicefiend
 
+class MinigameIDs:
+    HIGHROLL: str = "highroll"
+    LOWROLL: str = "lowroll"
+    LADDER: str = "ladder"
+    LUCKY: str = "lucky"
+    BET: str = "bet"
+    DUEL: str = "duel"
+    HEIST: str = "heist"
+    RAID: str = "raid"
+    TOURNAMENT: str = "tournament"
+
+class Cooldowns:
+    MINUTE: int = 60
+    MINUTE15: int = 15 * MINUTE
+    MINUTE30: int = 30 * MINUTE
+    MINUTE45: int = 45 * MINUTE
+    HOUR: int = 60 * MINUTE
+    HOUR2: int = 2 * HOUR
+    HOUR4: int = 4 * HOUR
+    HOUR6: int = 6 * HOUR
+    HOUR8: int = 8 * HOUR
+    HOUR12: int = 12 * HOUR
+    DAY: int = 24 * HOUR
+
 
 class DicefiendUser:
     """Represents a user in the Dicefiend system."""
@@ -48,12 +72,13 @@ class DicefiendUser:
         return _res
 
 
-    async def is_timed_out(self) -> bool:
+    async def timed_out_until(self, cmd: str) -> int:
         current_timestamp: int = self.bot.current_timestamp()
         ret: Row | None = await self.bot.execute(
-            "SELECT 1 FROM command_timeouts WHERE id = ? AND timeout_until > ? LIMIT 1", (self.id, current_timestamp)
+            "SELECT timeout_until FROM command_timeouts WHERE id = ? AND cmd = ? AND timeout_until > ? LIMIT 1", (self.id, current_timestamp, cmd)
         )
-        return ret is None
+
+        return ret["timeout_until"] if ret else 0
     
     async def set_timeout(self, cmd: str, unix: int) -> bool:
         return await self._save(
@@ -61,14 +86,19 @@ class DicefiendUser:
         )
 
 
-class UserTimedOut(Exception):
+class ExposableException(Exception):
+    """Base class for exceptions that can be exposed to the user."""
+    pass
+
+
+class UserTimedOut(ExposableException):
     """Raised when a user is timed out from using a command."""
     pass
 
-class UserDataError(Exception):
+class UserDataError(ExposableException):
     """Raised when there is an error retrieving or managing user data."""
     pass
 
-class SaveDataError(Exception):
+class SaveDataError(ExposableException):
     """Raised when there is an error saving data to the database."""
     pass
