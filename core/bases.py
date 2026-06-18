@@ -2,7 +2,7 @@ import typing, discord
 from sqlite3 import Row
 from discord.ext import commands
 
-from core.models import DicefiendUser, UserTimedOut, SaveDataError, UserDataError
+from core.models import DicefiendUser, ExposableException
 
 if typing.TYPE_CHECKING:
     from main import Dicefiend
@@ -15,6 +15,7 @@ class BaseMinigameCog(commands.Cog):
     async def get_user(self, user_id: int, lock: bool = False) -> DicefiendUser | None:
         user: Row | None = await self.bot.execute(f"SELECT * FROM users WHERE id = ? LIMIT 1", (user_id,))
 
+        # If user doesn't exist, create a new entry and retrieve it again
         if not user and not lock:
             async with self.bot.acquire_cursor() as cur:
                 await cur.execute(f"INSERT INTO users (id) VALUES (?)", (user_id,))
@@ -31,7 +32,7 @@ class BaseMinigameCog(commands.Cog):
     
 
     async def cog_app_command_error(self, interaction: discord.Interaction, error: Exception) -> None:
-        if isinstance(error, (UserTimedOut, UserDataError, SaveDataError)):
-            await interaction.response.send_message(str(error), ephemeral=True)
+        if isinstance(error, ExposableException):
+            await interaction.response.send_message(view=self.bot.to_container_view(discord.ui.TextDisplay(str(error))), ephemeral=True)
         else:
             await interaction.response.send_message("An unexpected error occurred. Please try again later.", ephemeral=True)
