@@ -1,16 +1,19 @@
-import typing, discord
-from sqlite3 import Row
-from discord.ext import commands
+import typing
 
-from core.models import DicefiendUser, ExposableException
+from discord.ext import commands
+from discord import ( ui, app_commands, Interaction )
+
+from core.models import ( DicefiendUser, ExposableException, Row )
 
 if typing.TYPE_CHECKING:
     from main import Dicefiend
+
 
 class BaseMinigameCog(commands.Cog):
     
     def __init__(self, bot: "Dicefiend") -> None:
         self.bot: "Dicefiend" = bot
+        self.register_error_handlers()
 
     async def get_user(self, user_id: int, lock: bool = False) -> DicefiendUser | None:
         user: Row | None = await self.bot.execute(f"SELECT * FROM users WHERE id = ? LIMIT 1", (user_id,))
@@ -31,8 +34,42 @@ class BaseMinigameCog(commands.Cog):
         raise NotImplementedError("This method should be implemented in the subclass.")
     
 
-    async def cog_app_command_error(self, interaction: discord.Interaction, error: Exception) -> None:
-        if isinstance(error, ExposableException):
-            await interaction.response.send_message(view=self.bot.to_container_view(discord.ui.TextDisplay(str(error))), ephemeral=True)
+    # Error handling for commands
+    def register_error_handlers(self) -> None:
+        """
+        Registers error handlers for all commands in the cog.
+
+        > command.on_error = self.command_error
+        """
+        pass
+
+
+    def _unwrap_exposable(self, error: Exception) -> ExposableException | None:
+        current: Exception = error
+        
+        while True:
+            if isinstance(current, ExposableException):
+                return current
+            
+            elif isinstance(current, commands.CommandInvokeError | app_commands.CommandInvokeError | commands.HybridCommandError):
+                current = current.original
+            
+            else:
+                return None
+
+    async def command_error(self, ctx: commands.Context, error: commands.CommandError | commands.HybridCommandError) -> None:
+        exposable: ExposableException | None = self._unwrap_exposable(error)
+
+        if isinstance(exposable, ExposableException):
+            await ctx.send(view=self.bot.to_container_view(ui.TextDisplay(str(exposable))), ephemeral=True)
         else:
-            await interaction.response.send_message("An unexpected error occurred. Please try again later.", ephemeral=True)
+            await ctx.send(view=self.bot.to_container_view(ui.TextDisplay("An unexpected error occurred. Please try again later.")), ephemeral=True)
+
+
+    async def app_command_error(self, interaction: Interaction, error: app_commands.AppCommandError) -> None:
+        exposable: ExposableException | None = self._unwrap_exposable(error)
+
+        if isinstance(exposable, ExposableException):
+            await interaction.response.send_message(view=self.bot.to_container_view(ui.TextDisplay(str(exposable))), ephemeral=True)
+        else:
+            await interaction.response.send_message(view=self.bot.to_container_view(ui.TextDisplay("An unexpected error occurred. Please try again later.")), ephemeral=True)   
