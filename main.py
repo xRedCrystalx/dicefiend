@@ -13,7 +13,7 @@ dotenv.load_dotenv()
 class Dicefiend(commands.Bot):
     def __init__(self) -> None:
         self.MAIN_POOL: asqlite.Pool
-        self.SCHEDULER: TaskScheduler = TaskScheduler()
+        self.SCHEDULER: TaskScheduler
 
         super().__init__(command_prefix=os.getenv("PREFIX", "!"), intents=discord.Intents.all(), help_command=None)
 
@@ -28,16 +28,18 @@ Loading... Please wait.
 ──────────────────────────────────────────""")
         try:
             self.session: aiohttp.ClientSession = aiohttp.ClientSession()
+            self.SCHEDULER = TaskScheduler()
             self.MAIN_POOL = await asqlite.create_pool("main.db", size=8)
         
             extensions: list[str] = [
                 "core.dev",
+                "core.profile",
                 "minigames.bet",
                 "minigames.duel",
                 "minigames.heist",
                 "minigames.raid",
                 "minigames.roll",
-                "minigames.tournament",   
+                "minigames.tournament",
             ]
 
             for extension in extensions:
