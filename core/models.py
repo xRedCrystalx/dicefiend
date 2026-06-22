@@ -1,8 +1,9 @@
+import typing
 from sqlite3 import Row
-from typing import Any, overload, TYPE_CHECKING
 
-if TYPE_CHECKING:
+if typing.TYPE_CHECKING:
     from main import Dicefiend
+
 
 class MinigameIDs:
     HIGHROLL: str = "highroll"
@@ -37,7 +38,7 @@ class DicefiendUser:
 
         self.bot: "Dicefiend" = bot
 
-    async def _save(self, sql: str, params: tuple[Any, ...]) -> bool:
+    async def _save(self, sql: str, params: tuple[typing.Any, ...]) -> bool:
         try:
             async with self.bot.acquire_cursor() as cur:
                 await cur.execute(sql, params)
@@ -75,14 +76,14 @@ class DicefiendUser:
     async def timed_out_until(self, cmd: str) -> int:
         current_timestamp: int = self.bot.current_timestamp()
         ret: Row | None = await self.bot.execute(
-            "SELECT timeout_until FROM command_timeouts WHERE id = ? AND cmd = ? AND timeout_until > ? LIMIT 1", (self.id, current_timestamp, cmd)
+            "SELECT timeout_until FROM command_timeouts WHERE id = ? AND cmd = ? AND timeout_until > ? LIMIT 1", (self.id, cmd, current_timestamp)
         )
 
         return ret["timeout_until"] if ret else 0
     
-    async def set_timeout(self, cmd: str, unix: int) -> bool:
+    async def set_timeout(self, cmd: str, timestamp: int) -> bool:
         return await self._save(
-            "INSERT OR REPLACE INTO command_timeouts (id, cmd, timeout_until) VALUES (?, ?)", (self.id, cmd, unix)    
+            "REPLACE INTO command_timeouts (id, cmd, timeout_until) VALUES (?, ?, ?)", (self.id, cmd, timestamp)    
         )
 
 

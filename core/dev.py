@@ -1,9 +1,9 @@
+import typing
+
 from discord.ext import commands
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
+if typing.TYPE_CHECKING:
     from main import Dicefiend
-
 
 class DevCommands(commands.Cog):
     def __init__(self, bot: "Dicefiend") -> None:

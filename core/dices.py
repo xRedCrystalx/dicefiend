@@ -1,5 +1,6 @@
 import random
-from typing import Callable, overload, Literal
+from typing import ( Callable, Literal, overload )
+
 
 class Dice:
 
