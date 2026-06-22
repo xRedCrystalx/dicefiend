@@ -5,8 +5,8 @@ After=network.target
 [Service]
 User=dicefiend
 WorkingDirectory=/opt/dicefiend
-#ExecStart=/usr/bin/tmux new -d -s dicefiend /usr/bin/python3 /opt/dicefiend/main.py
-ExecStart=/usr/bin/python3 /opt/dicefiend/main.py
+#ExecStart=/usr/bin/tmux new -d -s dicefiend /bin/bash /opt/dicefiend/start.sh
+ExecStart=/bin/bash /opt/dicefiend/start.sh
 Restart=always
 RestartSec=5
 
